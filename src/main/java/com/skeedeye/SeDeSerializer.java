@@ -20,8 +20,7 @@ public class SeDeSerializer {
 
     private final static String CACHE_FILE_NAME = "skeedEyeCache.dat";
 
-    private final static String TMP_DIR_NAME = System
-            .getProperty("java.io.tmpdir");
+    public final static String TMP_DIR_NAME = System.getProperty("java.io.tmpdir");
 
     public void deserialize(final Map<String, Metadata> cache) {
         final File cachedFile = new File(TMP_DIR_NAME + "/" + CACHE_FILE_NAME);

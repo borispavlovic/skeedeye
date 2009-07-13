@@ -18,9 +18,13 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
+import org.apache.commons.vfs.FileSystemException;
+import org.apache.commons.vfs.VFS;
+import org.apache.commons.vfs.impl.DefaultFileSystemManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,11 +34,26 @@ public class Gui extends JFrame {
     
     private static final Logger logger = LoggerFactory.getLogger(Gui.class);
     
+    public final DefaultFileSystemManager fsManager;
+    
+    private DefaultFileSystemManager createFsManager() {
+        try {
+            return (DefaultFileSystemManager) VFS.getManager();
+        } catch (FileSystemException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
     private final JPanel panel;
     
     private JTextField criterium;
     
     private final JFileChooser fileChooser = new JFileChooser();
+
+    private JTextField iPhoneIp;
+
+    private JPasswordField iPhonePass;
     
     public final static Map<String, Metadata> CACHE = new ConcurrentHashMap<String, Metadata>();
     
@@ -46,7 +65,7 @@ public class Gui extends JFrame {
     public Gui() {
         super();
         
-        setSize(800, 200);
+        setSize(800, 300);
         
         panel = createPanel();
         add(panel, BorderLayout.CENTER);
@@ -56,10 +75,14 @@ public class Gui extends JFrame {
             public void run() {
                 logger.debug("Shutdown metadata cache");
                 new SeDeSerializer().serialize(CACHE);
+                if (null != fsManager) {
+                    fsManager.close();
+                }
             }
         }));
         setLocationRelativeTo(null);
         setVisible(true);
+        fsManager = createFsManager();
     }
     
     private JPanel createPanel() {
@@ -78,11 +101,53 @@ public class Gui extends JFrame {
         addLabel("Criteria:", c);
         addCriterium(c);
         c.gridwidth = GridBagConstraints.RELATIVE;
+        addLabel("iPhone IP address:", c);
+        addIphoneIp(c);
+        c.gridwidth = GridBagConstraints.RELATIVE;
+        addLabel("iPhone root password:", c);
+        addIphonePass(c);
+        c.gridwidth = GridBagConstraints.RELATIVE;
         addLabel("Select Output Folder:", c);
         addOutputFolder(c);
         addSearchButton(c);
     }
     
+    private void addIphonePass(GridBagConstraints c) {
+        this.iPhonePass = new JPasswordField();
+        c.gridwidth = GridBagConstraints.REMAINDER;
+        c.weightx = 0.0;
+        make(c, this.iPhonePass);
+        panel.add(this.iPhonePass);
+    }
+
+    private void addIphoneIp(GridBagConstraints c) {
+        this.iPhoneIp = new JTextField();
+        c.gridwidth = GridBagConstraints.REMAINDER;
+        c.weightx = 0.0;
+        make(c, this.iPhoneIp);
+        panel.add(this.iPhoneIp);
+    }
+    
+    private void addCriterium(GridBagConstraints c) {
+        final JTextField crt = new JTextField(SEARCH);
+        crt.addFocusListener(new FocusListener() {
+            public void focusGained(FocusEvent e) {
+                if (crt.getText().trim().equalsIgnoreCase(SEARCH))
+                    crt.setText("");
+            }
+            public void focusLost(FocusEvent e) {
+                Gui.this.search.setEnabled(crt.getText().trim().length() > 0 && 
+                        !crt.getText().trim().equalsIgnoreCase(Gui.SEARCH) &&
+                        new File(Gui.this.output.getText()).exists());
+            }
+        });
+        this.criterium = crt;
+        c.gridwidth = GridBagConstraints.REMAINDER;
+        c.weightx = 0.0;
+        make(c, crt);
+        panel.add(crt);
+    }
+
     private JButton search;
     
     public void setEnabledSearchButton(Boolean enable) {
@@ -92,7 +157,7 @@ public class Gui extends JFrame {
     private final static String GRAB = "Grab!";
     private final static String STOP_GRABBING = "Stop Grabbing";
     
-    private Grabber grabber;
+    private Discover grabber;
     
     private void addSearchButton(GridBagConstraints c) {
         final JButton srch = new JButton(GRAB);
@@ -100,7 +165,15 @@ public class Gui extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 if (srch.getText().equals(GRAB)) {
                     srch.setEnabled(false);
-                    Gui.this.grabber = new Grabber(Gui.this, criterium.getText(), output.getText());
+                    Gui.this.grabber = new Discover(
+                        new GuiParams.Builder().
+                        gui(Gui.this).
+                        criterium(criterium.getText()).
+                        output(output.getText()).
+                        iPhoneIp(iPhoneIp.getText()).
+                        iPhonePassword(String.valueOf(iPhonePass.getPassword())).
+                        create()
+                    );
                     new Thread(Gui.this.grabber).start();
                     srch.setEnabled(true);
                     srch.setText(STOP_GRABBING);
@@ -138,26 +211,6 @@ public class Gui extends JFrame {
         c.gridwidth = GridBagConstraints.REMAINDER;
         make(c, outputFolder);
         panel.add(outputFolder);
-    }
-
-    private void addCriterium(GridBagConstraints c) {
-        final JTextField crt = new JTextField(SEARCH);
-        crt.addFocusListener(new FocusListener() {
-            public void focusGained(FocusEvent e) {
-                if (crt.getText().trim().equalsIgnoreCase(SEARCH))
-                    crt.setText("");
-            }
-            public void focusLost(FocusEvent e) {
-                Gui.this.search.setEnabled(crt.getText().trim().length() > 0 && 
-                        !crt.getText().trim().equalsIgnoreCase(Gui.SEARCH) &&
-                        new File(Gui.this.output.getText()).exists());
-            }
-        });
-        this.criterium = crt;
-        c.gridwidth = GridBagConstraints.REMAINDER;
-        c.weightx = 0.0;
-        make(c, crt);
-        panel.add(crt);
     }
 
     private void addLabel(String text, GridBagConstraints c) {

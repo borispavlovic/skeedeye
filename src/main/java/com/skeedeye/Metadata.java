@@ -1,6 +1,5 @@
 package com.skeedeye;
 
-import java.io.File;
 import java.io.Serializable;
 
 import org.slf4j.Logger;
@@ -39,9 +38,9 @@ public class Metadata implements Serializable {
         this.searchString = searchString;
     }
 
-    boolean isNewer(final File candidate) {
-        return name.equals(candidate.getName()) &&
-        lastModified >= candidate.lastModified();
+    boolean isNewer(final String candidateName, final long candidateLastModified) {
+        return this.name.equals(candidateName) &&
+        this.lastModified >= candidateLastModified;
     }
 
     @Override

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<configuration>
+
+
+	<!-- appender for console -->
+	<!-- version for the logback plugin console
+		available at http://logback.qos.ch/download.html
+		follow the instruction to install it and don't forget to set the port!
+		if you don't want to install it, uncomment the appender below, which will
+		write the logs in the console -->
+	<consolePlugin />
+
+	<appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+		<layout class="ch.qos.logback.classic.PatternLayout">
+			<Pattern>
+				[%d{yyyy-MM-dd HH:mm:ss.SSS}] %-5p [%c{1}.%M:%L] [%t] %m%n
+			</Pattern>
+		</layout>
+	</appender>
+
+	<!-- ======================= -->
+	<!-- Setup the Root category -->
+	<!-- ======================= -->
+
+	<root>
+		<level value="debug"></level>
+		<appender-ref ref="console"/>
+	</root>
+
+</configuration>
